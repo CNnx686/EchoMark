@@ -1,0 +1,94 @@
+      erDiagram
+    %% 用户认证与个人信息
+    AuthenticationAccount {
+        bigint UserId PK "主键"
+        string UserName UK "用户名"
+        string Email UK "邮箱"
+        string PhoneNumber UK "手机号"
+        string PasswordHash "密码哈希"
+        datetime RegisterTime "注册时间"
+    }
+
+    UserProfile {
+        bigint UserId PK "用户ID"
+        string Nickname "昵称"
+        string AvatarUrl "头像URL"
+        string Bio "个人简介"
+        string SelfDescription "详细描述"
+    }
+
+    %% 音频记录核心
+    AudioRecord {
+        bigint RecordId PK "记录ID"
+        bigint UserId FK "用户ID"
+        string Title "标题"
+        string Description "描述"
+        string AudioUrl "音频URL"
+        string TranscriptText "转文本内容"
+        float Latitude "纬度"
+        float Longitude "经度"
+        datetime PublishTime "创建时间"
+        datetime UpdatedTime "更新时间"
+        bit Deleted "是否已删除"
+        string PhotoUrl "图片URL"
+        string status "当前状态"
+    }
+
+    %% 标签系统
+    Tag {
+        bigint RecordId FK " 记录ID"
+        string Name "标签名称"
+    }
+
+    %% 社交互动
+    Comment {
+        biting CommentId PK "评论ID"
+        bigint RecordId FK "记录ID"
+        bigint UserId FK "用户ID"
+        bigint ParentCommentId FK "父评论ID(可选)"
+        bit is_deletet "是否已删除"
+        string Content "评论内容"
+        datetime CreatedTime "评论时间"
+    }
+
+    Like {
+        bigint LikeId PK "点赞ID"
+        bigint UserId FK "用户ID"
+        enum TargetType "目标类型(RECORD/COMMENT)(可选)"
+        bigint TargetId "目标ID"
+    }
+
+    Favorite {
+        bigint FavoriteId PK "收藏ID"
+        bigint UserId FK "用户ID"
+        bigint RecordId FK "记录ID"
+        datetime CreatedAt "收藏时间"
+    }
+    Notification{
+        bigint id PK "通知ID"
+        bigint actorUserId "触发通知用户ID"
+        string content "通知内容"
+        datetime createdAt "通知创建时间"
+        string eventId UK "事件ID"
+        bigint receiverUserId "接收通知用户ID"
+        bigint targetId "目标ID"
+        enum targetType "目标类型"
+        enum type "通知类型"
+        bit isRead "是否已读"
+    }
+    %% 关系定义
+    AuthenticationAccount ||--|| UserProfile : "一对一关联"
+    UserProfile ||--o{ AudioRecord : "创建"
+    UserProfile ||--o{ Comment : "发表"
+    UserProfile ||--o{ Like : "点赞"
+    UserProfile ||--o{ Favorite : "收藏"
+
+    AudioRecord ||--o{ Comment : "拥有评论"
+    AudioRecord ||--|| Tag : "关联标签"
+    AudioRecord ||--o{ Favorite : "被收藏"
+
+    Comment ||--o{ Like : "被点赞(TargetType=COMMENT)"
+    AudioRecord ||--o{ Like : "被点赞(TargetType=RECORD)"
+
+    Comment }o--|| Comment : "回复父评论"
+

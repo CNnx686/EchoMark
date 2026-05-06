@@ -1,0 +1,42 @@
+@startuml
+|Frontend|
+start
+:打开“个人资料”页面;
+:编辑头像、昵称、简介等信息;
+:提交修改;
+
+|User|
+:检查用户账号是否被封禁;
+if (账号未封禁?) then (yes)
+  :校验头像格式与大小;
+  if (头像合法?) then (yes)
+    :校验昵称合法性;
+    if (昵称合法?) then (yes)
+      :校验简介长度;
+      if (简介合法?) then (yes)
+      else (简介超长)
+        |Frontend|
+        :显示“简介不能超过规定字数”;
+      endif
+    else (昵称不合法)
+      |Frontend|
+      :显示“昵称包含非法字符或已被占用”;
+    endif
+  else (头像不合法)
+    |Frontend|
+    :显示“头像格式不支持或文件过大”;
+  endif
+else (账号被封禁)
+  |Frontend|
+  :显示“您的账号已被限制，无法修改个人资料”;
+endif
+|User|
+if(保存成功?) then(yes)
+  |Frontend|
+  :显示“修改成功”;
+else(no)
+  :显示“保存失败，请重试”;
+endif
+|Frontend|
+stop
+@enduml

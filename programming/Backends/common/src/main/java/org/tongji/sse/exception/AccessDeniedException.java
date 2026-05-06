@@ -1,0 +1,8 @@
+package org.tongji.sse.exception;
+
+public class AccessDeniedException extends BusinessException {
+    public AccessDeniedException(String message) {
+        super(403, message);
+    }
+}
+

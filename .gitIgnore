@@ -1,0 +1,10 @@
+.vscode/
+tmp.*
+application.properties
+*.iml
+.idea/
+target/
+storage/
+DevToken.txt
+local_resource_server/static/users
+logs/

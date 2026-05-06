@@ -1,0 +1,165 @@
+@startuml
+title 类图
+
+' 设置类图样式
+skinparam class {
+  ArrowColor #666
+  BorderColor #333
+  AttributeIconSize 0
+}
+
+' 设置显示符号而不是图标
+hide circle
+skinparam classAttributeIconSize 0
+
+' 枚举类型
+enum TargetType <<Enum>> {
+  RECORD
+  COMMENT
+}
+
+' 核心实体类（参照ER图的8个类）
+class AuthenticationAccount <<Entity>> {
+  # UserId: Long {pk}
+  + UserName: String {unique}
+  + Email: String {unique}
+  + PhoneNumber: String {unique}
+  # PasswordHash: String {private}
+  + RegisterTime: DateTime
+
+  + Login(LoginInfo): Boolean
+  + Register(RegisterInfo): void
+  + changePassword(AccountInfo): void
+  # hashPassword(password: String): String
+}
+
+class UserProfile <<Entity>> {
+  # UserId: Long {pk, fk -> AuthenticationAccount}
+  + Nickname: String
+  + AvatarUrl: String
+  + Bio: String
+  + SelfDescription: Text
+
+  + updateProfile(UserProfileInfo): void
+  + changeAvatar(imageData: Byte[]): void
+}
+
+class AudioRecord <<Entity>> {
+  # RecordId: Long {pk}
+  # UserId: Long {fk -> UserProfile}
+  + Title: String
+  + Description: Text
+  + AudioUrl: String
+  + TranscriptText: Text
+  + Latitude: Float
+  + Longitude: Float
+  + CreatedTime: DateTime
+  + UpdatedTime: DateTime
+  + Status: AudioStatus
+  + Deleted: Boolean
+
+  + incrementPlayCount(): void
+  + updateAudioRecord(AudioInfo): void
+  + delelteAduioRecord(AudioInfo): void
+  + getAudios(GetParam): AudioInfos
+  + searchAudios(string: searchKeyWords):AudioInfos
+  + recommendAudios():AudioInfos
+  + getOnMapAudios(array: position):AudioInfos
+  + GetLLMs():Object
+  # validateAudioFormat(url: String): Boolean
+}
+
+class Tag <<Entity>> {
+  # TagId: Long {pk}
+  + Name: String {unique}
+  + RecordId: Long {fk -> AudioRecord}
+
+  + incrementUsage(): void
+}
+
+class Comment <<Entity>> {
+  # CommentId: Long {pk}
+  # RecordId: Long {fk -> AudioRecord}
+  # UserId: Long {fk -> UserProfile}
+  # ParentCommentId: Long {fk -> Comment, nullable}
+  + Content: String
+  + CreatedTime: DateTime
+
+  + reply(AudioInfo): void
+  + deleteReply(CommentInfo): void
+  + makeNotification(CommentInfo): void
+}
+
+class Like <<Entity>> {
+  # LikeId: Long {pk}
+  # UserId: Long {fk -> UserProfile}
+  + TargetType: TargetType
+  + TargetId: Long
+  + CreatedTime: DateTime
+
+  + like(AudioInfo): void
+  + cancelLike(AudioInfo):void
+  + makeLikeNotification(LiekInfo): void
+  + isValidTarget(): Boolean
+}
+
+class Favorite <<Entity>> {
+  # FavoriteId: Long {pk}
+  # UserId: Long {fk -> UserProfile}
+  # RecordId: Long {fk -> AudioRecord}
+  + CreatedAt: DateTime
+
+  + favorite(AudioInfo): void
+  + cancelFavorite(AudioInfo): void
+  + makeFavoriteNotification(FavoriteInfo): void
+  + getUser(): UserProfile
+}
+
+class Notification <<Entity>>{
+  # id: Long {pk}
+  + actorUserId: Long
+  + receiverUserId: Long
+  + type: NotificationType
+  + targetId: Long
+  + targetType: TargetType
+  + eventId: String {unique}
+  + content: String
+  + createdAt: DateTime
+  + isRead: Boolean
+
+  + markAsRead(): void
+  + getNotifications(): NotificationInfos
+  + hasUnreadNotification(): Boolean
+  + setSilence(): Boolean
+}
+
+' 一对一关系
+AuthenticationAccount "1" o-- "1" UserProfile
+
+' 一对多关系（用户相关）
+UserProfile "1" -- "*" AudioRecord
+UserProfile "1" -- "*" Comment
+UserProfile "1" -- "*" Like
+UserProfile "1" -- "*" Favorite
+
+' 音频记录的多对多关联
+AudioRecord "1" -- "1" Tag
+
+' 评论与记录的关联
+AudioRecord "1" -- "*" Comment
+
+' 评论的递归关联（多级评论）
+Comment "1" -- "*" Comment : "0..1" <-> "*"
+Comment "1" -- "*" Notification
+
+' 点赞的多态关联
+Like "0..1" -- "*" AudioRecord
+Like "0..1" -- "*" Comment
+Like "1" -- "*" Notification
+
+' 收藏与记录的关联
+AudioRecord "1" -- "*" Favorite
+Favorite "0..1" -- "1" AudioRecord
+Favorite "1" -- "*" Notification
+
+@enduml

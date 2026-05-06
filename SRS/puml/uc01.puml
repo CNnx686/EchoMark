@@ -1,0 +1,43 @@
+@startuml UC01_UserRegistration_Entities
+|Frontend|
+start
+:打开注册页面;
+:输入用户名、邮箱、手机号、密码;
+|Auth|
+:验证用户名、邮箱、手机号、密码格式;
+if (格式合法?) then (yes)
+  :检查用户名、邮箱、手机号是否已被使用;
+  if (未被使用?) then (yes)
+    :向用户邮箱发送邮件;
+     if(邮件验证成功？)then(yes)
+        :创建 AuthenticationAccount;
+        if (创建成功?) then (yes)
+          |User|
+          :创建默认 UserProfile;
+          if (创建成功?) then (yes)
+            |Frontend|
+            :显示注册成功提示;
+          else (创建失败)
+            |Auth|
+            :回滚事务，删除 AuthenticationAccount;
+            |Frontend|
+            :显示错误提示;
+          endif
+        else (创建失败)
+          |Frontend|
+          :显示系统错误提示;
+        endif
+     else(no)
+         :暂停流程;
+     endif
+  else (已存在)
+    |Frontend|
+    :返回“用户名/邮箱/手机号已被占用”;
+  endif
+else (格式不合法)
+  |Frontend|
+  :显示格式错误提示;
+endif
+
+stop
+@enduml

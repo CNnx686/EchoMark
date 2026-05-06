@@ -1,0 +1,32 @@
+@startuml
+title 音频记录生命周期状态图 (AudioRecord State Machine)
+hide empty description
+skinparam state {
+  BackgroundColor White
+  BorderColor #333
+}
+
+state "待上传 (Pending Upload)" as Pending
+state "已上传 (Uploaded)" as Uploaded
+state "已创建 (Created/Persisted)" as Created
+state "编辑中 (Editing)" as Editing
+state "已删除 (Deleted)" as Deleted
+
+[*] --> Pending : 用户点击录音/上传
+
+Pending --> Uploaded : 文件上传至对象存储成功
+Uploaded --> Created : 提交记录信息 (UC-04)
+
+Created --> Editing : 用户点击编辑 (UC-06)
+Editing --> Created : 保存修改
+Editing --> Created : 取消编辑
+
+Created --> Deleted : 用户点击删除 (UC-06)
+Deleted --> [*] : 物理删除或归档
+
+note right of Created
+  记录在数据库中持久化
+  包含标题、标签、位置等信息
+end note
+
+@enduml

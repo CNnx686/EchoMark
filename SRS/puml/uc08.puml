@@ -1,0 +1,40 @@
+@startuml UC08_CommentReply_Optimized
+|Frontend|
+start
+:在音频记录详情页输入评论内容;
+
+|Audio|
+if (记录存在?) then (yes)
+  |Frontend|
+  if (内容为空?) then (yes)
+    :提示“评论不能为空”;
+    stop
+  endif
+  if (内容过长?) then (yes)
+    :提示“字数超限”;
+    stop
+  endif
+  if (回复评论?) then (yes)
+    |Comment|
+    :检查父评论是否存在;
+    if (父评论存在?) then (yes)
+      |Comment|
+      :保存评论并关联 ParentCommentId;
+    else (父评论不存在)
+      |Frontend|
+      :提示“回复目标不存在”;
+      stop
+    endif
+  else (新评论)
+    |Comment|
+    :保存评论;
+  endif
+  |Frontend|
+  :显示“评论成功”;
+else (记录不存在或被删除)
+  |Frontend|
+  :禁止评论，提示“记录不可用”;
+endif
+
+stop
+@enduml

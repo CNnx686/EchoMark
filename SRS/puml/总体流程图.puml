@@ -1,0 +1,106 @@
+@startuml
+title 系统总体流程图
+
+skinparam backgroundColor #FFFFFF
+skinparam Activity {
+  BackgroundColor #E6F3FF
+  BorderColor #0066CC
+  ArrowColor #0066CC
+  FontName Arial
+}
+
+start
+
+' 流程起点 - 注册/登录
+partition "用户认证与访问" {
+    :启动应用/访问Web;
+    if (是否有账号?) then (否 - 注册)
+        :UC-01 用户注册;
+    else (是 - 登录)
+        :UC-02 用户登录;
+	:重置密码（可选）;
+    endif
+    :UC-03 修改个人信息 (可选);
+    -> 已登录状态;
+}
+
+fork
+    ' 流程起点 - 首页与推荐
+    partition "内容发现与推荐" {
+    :进入首页 (Dashboard);
+    :请求热门推荐列表;
+    :UC-10 查看热门推荐;
+}
+fork again
+    partition "退出登录"{
+    :UC-12 退出登录;
+    if (确认退出) then (退出)
+         :退出登录状态;
+         stop
+    else (停止退出)
+        :流程继续; 
+    endif
+} 
+fork end
+-> 主页/内容流;
+
+fork
+    ' 分支 A：音频创建与管理 (CRUD)
+    partition "音频记录生命周期" {
+        :UC-04 录制 / 上传音频;
+        if (需要管理记录?) then (是)
+            :UC-06 编辑 / 删除记录;
+        endif
+    }
+fork again
+    ' 分支 B：社交互动与发现
+    partition "互动与地理位置发现" {
+        
+        split
+            ' 社交操作 (UC-08/UC-09/UC-14)
+            partition "社交互动" {
+                :UC-07 浏览记录详情页;
+                if (是否评论?) then (是)
+                    :UC-08 评论记录 / 回复评论;
+                endif
+                if (是否点赞?) then (是)
+                    :UC-09 点赞记录或评论;
+                endif
+                if (是否收藏?) then (是)
+                    :UC-14 收藏 / 取消收藏;
+                endif
+            }
+        split again
+            ' 地图发现 (UC-11)
+            partition "地图定位查询" {
+                :UC-11 查看附近记录;
+            }
+        end split
+    }
+fork again
+    ' 分支 C：个人内容管理与统计
+    partition "个人数据与统计" {
+        :UC-15 管理收藏的音频;
+        :UC-07 查看个人时间线/标签过滤记录;
+    }
+
+fork again
+    '分支D：通知模块
+    partition "系统与个人消息通知" {
+        if(是否已经消息静默?) then (是)
+        else (否)
+            :用户可见新消息提示;
+        endif
+        :用户查看通知;
+        if (查看通知模块是否可用?) then (是)
+            :UC-05 接收通知;
+        else (否)
+            stop
+        endif
+    
+}
+
+end fork
+
+stop
+@enduml

@@ -1,0 +1,64 @@
+@startuml
+title UC-06: 音频记录编辑与删除
+autonumber
+
+actor "创建者" as User
+participant "前端" as FE
+participant "音频服务" as AudioSvc
+database "数据库" as DB
+
+== 编辑记录 ==
+User -> FE : 修改标题/标签 -> 点击保存
+FE -> AudioSvc : PUT /records/{id}
+activate AudioSvc
+AudioSvc -> DB : 查询记录并校验所有权
+alt 记录不存在
+    DB --> AudioSvc : Null
+    AudioSvc --> FE : 404 Not Found
+    FE --> User : 提示"记录不存在"
+else 记录存在
+    alt 无权限 (UserId 不匹配)
+        AudioSvc --> FE : 403 Forbidden
+        FE --> User : 提示"无权修改"
+    else 权限验证通过
+        AudioSvc -> DB : Update AudioRecord
+        alt 更新失败 (DB Error)
+            DB --> AudioSvc : Error
+            AudioSvc --> FE : 500 Internal Server Error
+            FE --> User : 提示"保存失败"
+        else 更新成功
+            AudioSvc -> DB : Update Tags
+            DB --> AudioSvc : Success
+            AudioSvc --> FE : 返回更新后的对象
+            FE --> User : 提示"保存成功"
+        end
+    end
+end
+deactivate AudioSvc
+
+== 删除记录 ==
+User -> FE : 点击删除
+FE -> AudioSvc : DELETE /records/{id}
+activate AudioSvc
+AudioSvc -> DB : 查询记录并校验所有权
+alt 记录不存在
+    DB --> AudioSvc : Null
+    AudioSvc --> FE : 404 Not Found
+else 记录存在
+    alt 无权限
+        AudioSvc --> FE : 403 Forbidden
+    else 权限验证通过
+        AudioSvc -> DB : 执行软删除 (IsDeleted = 1)
+        alt 删除失败
+            DB --> AudioSvc : Error
+            AudioSvc --> FE : 500 Error
+        else 删除成功
+            DB --> AudioSvc : Success
+            AudioSvc --> FE : 返回成功
+            FE -> FE : 从列表中移除该条目
+        end
+    end
+end
+deactivate AudioSvc
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+|Frontend|
+start
+:进入自己创建的记录详情页;
+|Audio|
+:获取当前记录的信息;
+if (记录存在?) then (yes)
+  |Frontend|
+  if (操作=编辑?) then (yes)
+    :修改标题、描述;
+    |Audio|
+    :保存更新;
+    if (保存成功?) then (yes)
+      |Frontend|
+      :显示“修改成功”;
+    else (失败)
+      |Frontend|
+      :显示“保存失败”;
+    endif
+  else (操作=删除)
+    if (是记录拥有者?) then (yes)
+      |Audio|
+      :执行删除操作(软/硬删除);
+      if (删除成功?) then (yes)
+        |Frontend|
+        :显示“删除成功”;
+      else (失败)
+        :显示“删除失败”;
+      endif
+    else (非拥有者)
+      |Frontend|
+      :显示“无权限删除”;
+    endif
+  endif
+else (记录不存在)
+  |Frontend|
+  :显示“记录不存在/已被删除”;
+endif
+
+stop
+@enduml

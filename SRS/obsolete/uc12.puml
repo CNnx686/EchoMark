@@ -1,0 +1,48 @@
+@startuml UC12_ManageTags
+|User|
+start
+:在创建/编辑记录时输入标签或选择已有标签;
+
+|Tag|
+if (标签名为空?) then (yes)
+  |User|
+  :提示“标签名不能为空”;
+  stop
+endif
+if (标签名非法?) then (yes)
+  |User|
+  :提示“标签名包含非法字符”;
+  stop
+endif
+
+|Tag|
+if (标签存在?) then (yes)
+  |User|
+  :选择已有标签;
+else (标签不存在)
+  if (重复?) then (yes)
+    |User|
+    :阻止重复创建;
+    stop
+  endif
+  if (超出数量上限?) then (yes)
+    |User|
+    :提示“标签数量超出上限”;
+    stop
+  endif
+  |Tag|
+  :创建新标签;
+endif
+
+|RecordTag|
+if (标签关联有效?) then (yes)
+  :更新 RecordTag 关联;
+  |User|
+  :显示“标签更新成功”;
+else
+  |User|
+  :标签不存在或无效，自动忽略或提示用户;
+endif
+
+stop
+@enduml

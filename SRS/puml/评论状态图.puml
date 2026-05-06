@@ -1,0 +1,14 @@
+@startuml
+title 评论状态图
+hide empty description
+
+state "草稿 (Draft)" as Draft
+state "已发布 (Posted)" as Posted
+state "已删除 (Deleted)" as CommDeleted
+
+[*] --> Draft : 用户输入内容
+Draft --> Posted : 提交评论 (UC-08)
+Posted --> CommDeleted : 用户/管理员删除
+CommDeleted --> [*]
+
+@enduml

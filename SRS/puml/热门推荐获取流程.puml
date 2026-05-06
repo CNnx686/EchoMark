@@ -1,0 +1,52 @@
+@startuml
+title UC-10: 热门推荐获取流程
+autonumber
+
+actor "用户" as User
+participant "前端" as FE
+participant "音频服务" as RecSvc
+participant "Redis 缓存" as Redis
+database "数据库" as DB
+
+User -> FE : 访问首页/热门栏目
+FE -> RecSvc : GET /recommendations
+
+activate RecSvc
+alt 推荐服务不可用
+    RecSvc --> FE : 503 Service Unavailable
+    FE --> User : 显示降级页面/空列表
+    deactivate RecSvc
+else 服务正常
+    RecSvc -> Redis : 查询热门榜单 (ZSET)
+    alt 缓存命中 (Cache Hit)
+        Redis --> RecSvc : 返回 Record ID 列表
+    else 缓存未命中 (Cache Miss)
+        RecSvc -> DB : 聚合查询
+        note right
+            由点赞+评论+时间衰减排序
+        end note
+        alt DB 查询超时/失败
+            DB --> RecSvc : Error
+            RecSvc --> FE : 返回空列表或备用数据
+        else 查询成功
+            DB --> RecSvc : 返回 Top N 列表
+            RecSvc -> Redis : 写入缓存 (TTL 5min)
+        end
+    end
+
+    opt 成功获取 ID 列表
+        RecSvc -> DB : 批量获取音频详情 (Title, Cover, Url)
+        alt 获取详情失败
+            DB --> RecSvc : Error
+            RecSvc --> FE : 返回部分数据或空
+        else 获取成功
+            DB --> RecSvc : 返回详情数据
+            RecSvc --> FE : 返回推荐列表 JSON
+        end
+    end
+    deactivate RecSvc
+end
+
+FE --> User : 渲染热门卡片流
+
+@enduml

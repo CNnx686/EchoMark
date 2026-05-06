@@ -1,0 +1,68 @@
+server:
+  port: 8080 # Gateway 统一对外端口
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true # 开启基于服务发现的默认路由（可选）
+          lower-case-service-id: true
+      # 跨域配置 (Gateway常见问题)
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+      # --- 路由配置 ---
+      routes:
+        # 1. Auth Service
+        - id: auth-service
+          uri: http://localhost:5001  # 如果没用注册中心，改为 http://localhost:8081
+          predicates:
+            - Path=/api/auth/** # 匹配路径
+
+        # 2. User Service
+        - id: user-service
+          uri: http://localhost:5002
+          predicates:
+            - Path=/api/users/**
+
+        # 3. Audio Service
+        - id: audio-service
+          uri: http://localhost:5003
+          predicates:
+            - Path=/api/audio/**
+
+        # 4. Social Service
+        - id: social-service
+          uri: http://localhost:5004
+          predicates:
+            - Path=/api/social/**
+
+        # 5. Notification Service
+        - id: notification-service
+          uri: http://localhost:5005
+          predicates:
+            - Path=/api/notifications/**
+
+        # 6. SSE Service
+        - id: sse-service
+          uri: http://localhost:5006
+          predicates:
+            - Path=/api/sse/**
+
+# --- Swagger UI 聚合配置 ---
+springdoc:
+  # 网关本地文档路径（改名，防止冲突）
+  api-docs:
+#    path: /v3/api-docs/gateway
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    config-url: /swagger/swagger-config
+

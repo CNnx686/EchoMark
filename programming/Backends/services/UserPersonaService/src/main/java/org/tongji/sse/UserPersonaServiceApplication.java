@@ -1,0 +1,13 @@
+package org.tongji.sse;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UserPersonaServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(UserPersonaServiceApplication.class, args);
+    }
+
+}

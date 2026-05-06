@@ -1,0 +1,28 @@
+@startuml UC07_BrowseRecords
+|Frontend|
+start
+:访问首页、时间线页、标签页或地图页;
+|Audio|
+:加载记录列表;
+if (加载成功?) then (yes)
+  :按标签或地理位置筛选;
+  :按时间排序;
+  |Frontend|
+  :选择某条记录进入详情页;
+  |Audio|
+  if (记录存在且可访问?) then (yes)
+    |Frontend|
+    :展示音频、文本、标签、位置;
+    |Like|
+    :加载评论、点赞、收藏信息;
+  else (不可访问)
+    |Frontend|
+    :显示“内容不可用”;
+  endif
+else (加载失败)
+  |Frontend|
+  :显示“网络异常，加载失败”;
+endif
+
+stop
+@enduml

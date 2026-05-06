@@ -1,0 +1,34 @@
+@startuml UC09_LikeContent_Optimized
+|Frontend|
+start
+:点击“点赞”按钮;
+
+|Audio / Comment|
+if (目标存在?) then (yes)
+  |Frontend|
+  if (用户已登录?) then (yes)
+    |Like|
+    if (已点赞?) then (yes)
+      :取消 Like;
+      |Audio / Comment|
+      :更新点赞计数;
+      |Frontend|
+      :显示“取消点赞成功”;
+    else (未点赞)
+      :新增 Like;
+      |Audio / Comment|
+      :更新点赞计数;
+      |Frontend|
+      :显示“点赞成功”;
+    endif
+  else (未登录)
+    |Frontend|
+    :提示“请登录后操作”;
+  endif
+else (目标不存在)
+  |Frontend|
+  :提示“点赞目标不存在”;
+endif
+
+stop
+@enduml

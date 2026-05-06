@@ -1,0 +1,35 @@
+@startuml UC14_FavoriteAudio
+|Frontend|
+start
+:点击“收藏”按钮;
+
+|Audio|
+if (音频存在?) then (yes)
+  |Favorite|
+  if (已有收藏?) then (yes)
+    :删除收藏记录;
+    |Audio|
+    :更新收藏状态为“未收藏”;
+    |Frontend|
+    :更新 UI 显示“未收藏”;
+  else (未收藏)
+    :新增收藏记录;
+    |Audio|
+    :更新收藏状态为“已收藏”;
+    |Frontend|
+    :更新 UI 显示“已收藏”;
+  endif
+else (音频不存在或已删除)
+  |Frontend|
+  :提示“音频不可用”;
+  stop
+endif
+
+|Favorite|
+if (数据库操作失败?) then (yes)
+  |Frontend|
+  :提示“操作失败，请稍后再试”;
+endif
+
+stop
+@enduml
