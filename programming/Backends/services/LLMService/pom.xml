@@ -55,7 +55,13 @@
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
-        
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- HTTP Client for LLM API calls -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>

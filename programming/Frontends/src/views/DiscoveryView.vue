@@ -3,8 +3,10 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { ApiResponse, AudioResponseDto, RecommendationResponse } from "@/types/Audio";
-const GetAudioUrlPrefix = "http://101.37.31.227:5000";
+import { useHaptic } from "@/composables/useHaptic";
+const GetAudioUrlPrefix = "http://localhost:5000";
 const { t, locale } = useI18n();
+const { lightTap, mediumTap } = useHaptic();
 const router = useRouter();
 
 const audioList = ref<AudioResponseDto[]>([]);
@@ -55,6 +57,7 @@ const goToDetail = (id: number) => {
 
 // 搜索音频
 const handleSearch = async () => {
+  lightTap();
   if (!searchKeyword.value.trim()) {
     showSearchResults.value = false;
     return;
@@ -93,6 +96,7 @@ const clearSearch = () => {
 
 // 切换推荐类型
 const toggleRecommendation = async () => {
+  mediumTap();
   if (showAiRecommendation.value) {
     // 如果当前是AI推荐，切换到热度推荐
     showAiRecommendation.value = false;

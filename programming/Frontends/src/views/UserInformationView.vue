@@ -7,7 +7,7 @@ import { UserProfileDTO, UserProfileUpdateRequestDTO } from "@/types/User";
 import type { AudioResponseDto } from "@/types/Audio";
 
 // 资源服务器
-const GetAudioUrlPrefix = "http://101.37.31.227:5000";
+const GetAudioUrlPrefix = "http://localhost:5000";
 
 const exitConfirm = ref(false);
 

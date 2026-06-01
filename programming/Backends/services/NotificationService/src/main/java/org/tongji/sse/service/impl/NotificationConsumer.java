@@ -2,6 +2,7 @@ package org.tongji.sse.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tongji.sse.entity.Notification;
@@ -14,6 +15,7 @@ import org.tongji.sse.type.NotificationType;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationConsumer {
 
     private final NotificationRepository repository;

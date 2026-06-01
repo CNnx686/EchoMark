@@ -2,6 +2,7 @@ package org.tongji.sse.eventUtil;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -14,12 +15,16 @@ import java.util.List;
 @Component
 @Slf4j
 public class EventPublisher {
-    private final RabbitTemplate rabbitTemplate;
+    private RabbitTemplate rabbitTemplate;
     private final EventChannelsProperties channelsProperties;
 
-    public EventPublisher(RabbitTemplate rabbitTemplate, EventChannelsProperties channelsProperties) {
-        this.rabbitTemplate = rabbitTemplate;
+    public EventPublisher(EventChannelsProperties channelsProperties) {
         this.channelsProperties = channelsProperties;
+    }
+
+    @Autowired(required = false)
+    public void setRabbitTemplate(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     private static final ThreadLocal<List<EventWrapper<?>>> EVENTS = ThreadLocal.withInitial(ArrayList::new);
@@ -50,6 +55,10 @@ public class EventPublisher {
     private void sendAll() {
         List<EventWrapper<?>> toSend = EVENTS.get();
         try {
+            if (rabbitTemplate == null) {
+                log.debug("RabbitMQ not available, {} event(s) dropped", toSend.size());
+                return;
+            }
             for (EventWrapper<?> wrapper : toSend) {
                 EventChannelsProperties.EventChannel channelConfig = channelsProperties.getChannels().stream()
                         .filter(c -> c.getName().equals(wrapper.channel().name()))

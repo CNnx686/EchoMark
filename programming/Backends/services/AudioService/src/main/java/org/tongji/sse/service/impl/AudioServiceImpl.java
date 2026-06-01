@@ -54,8 +54,10 @@ public class AudioServiceImpl implements AudioService {
     private final UserRepository userRepo;
     private final AudioValidator audioValidator;
     private final AudioUploadProperties audioUploadProperties;
-    private final AudioTranscoder audioTranscoder;
-    private final StringRedisTemplate redisTemplate;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AudioTranscoder audioTranscoder;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final JiebaSegmenter segmenter = new JiebaSegmenter();
     private final EventPublisher publisher;
@@ -105,8 +107,13 @@ public class AudioServiceImpl implements AudioService {
             );
 
 
-            // 转码为 WAV
-            File wavFile = audioTranscoder.transcodeToWav(tempFile);
+            // 转码为 WAV (若 FFmpeg 不可用则跳过)
+            File wavFile;
+            if (audioTranscoder != null) {
+                wavFile = audioTranscoder.transcodeToWav(tempFile);
+            } else {
+                wavFile = tempFile;
+            }
 
             // 上传
             String objectName = "audio/" + uid + "/" + System.currentTimeMillis() + "-" + wavFile.getName();
@@ -341,12 +348,14 @@ public class AudioServiceImpl implements AudioService {
         String cacheKey = "audio:recommendation";
 
         List<AudioResponseDto> fullList = null;
-        String cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            try {
-                fullList = objectMapper.readValue(cached, new TypeReference<List<AudioResponseDto>>(){});
-            } catch (Exception e) {
-                // ignore
+        if (redisTemplate != null) {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                try {
+                    fullList = objectMapper.readValue(cached, new TypeReference<List<AudioResponseDto>>(){});
+                } catch (Exception e) {
+                    // ignore
+                }
             }
         }
 
@@ -371,7 +380,9 @@ public class AudioServiceImpl implements AudioService {
             fullList = publishedAudios.stream().map(this::toDto).collect(Collectors.toList());
 
             try {
-                redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(fullList), 1, TimeUnit.MINUTES);
+                if (redisTemplate != null) {
+                    redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(fullList), 1, TimeUnit.MINUTES);
+                }
             } catch (Exception e) {
                 // ignore
             }

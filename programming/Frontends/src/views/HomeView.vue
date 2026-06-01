@@ -5,8 +5,10 @@ import Router from "@/router";
 // 导入录音组件
 import RecordingModal from "@/components/RecordingModal.vue";
 import { AudioResponseDto } from "@/types/Audio";
+import { useHaptic } from "@/composables/useHaptic";
 
 const { t } = useI18n();
+const { lightTap, mediumTap } = useHaptic();
 
 // 地图实例引用
 const mapInstance = ref<any>(null);
@@ -72,12 +74,16 @@ const CreateMap = (centerLng: number = 116.404, centerLat: number = 39.915) => {
     const zoomCtrl = new BMapGL.ZoomControl();
     mapInstance.value.addControl(zoomCtrl);
 
-    // 监听缩放事件
+    // 监听缩放事件 - 按比例更新标记大小
     mapInstance.value.addEventListener("zoomend", () => {
       const newZoom = mapInstance.value.getZoom();
       currentZoom.value = newZoom;
-      // 当缩放级别变化时，重新获取附近的音频点
-      fetchNearbyAudios();
+      // 按比例更新现有标记大小，无需重新请求数据
+      if (nearbyAudios.value.length > 0) {
+        showNearbyAudiosOnMap(nearbyAudios.value);
+      } else {
+        fetchNearbyAudios();
+      }
     });
 
     // 监听拖动结束事件
@@ -138,6 +144,13 @@ const initMap = () => {
   }
 };
 
+// 根据缩放级别计算标记点大小
+const getMarkerSize = (zoom: number, visitCount: number = 0) => {
+  const baseSize = Math.max(8, (zoom - 10) * 5);
+  const popularityBonus = Math.min(visitCount / 10, 8);
+  return baseSize + popularityBonus;
+};
+
 // 初始化mapvgl相关组件
 const initMapVglComponents = () => {
   // 创建 View
@@ -145,16 +158,16 @@ const initMapVglComponents = () => {
     map: mapInstance.value,
   });
 
-  // 创建 PointLayer
+  // 创建 PointLayer（初始大小，后续根据缩放更新）
+  const initialSize = getMarkerSize(currentZoom.value);
   pointLayer.value = new (window as any).mapvgl.PointLayer({
     color: "rgba(50, 50, 200, 1)",
-    size: 24,
+    size: initialSize,
     blend: "normal",
     enablePicked: true,
     selectedColor: "#ff0000",
     autoSelect: true,
     onClick: (e: any) => {
-      // 添加空值检查，避免访问undefined的属性
       if (e && e.dataItem && e.dataItem.properties && e.dataItem.properties.id) {
         const audioId = e.dataItem.properties.id;
         Router.push(`audio/${audioId}`);
@@ -207,33 +220,43 @@ const fetchNearbyAudios = async () => {
   }
 };
 
-// 在地图上显示附近的音频点
+// 在地图上显示附近的音频点（按比例显示）
 const showNearbyAudiosOnMap = (audios: AudioResponseDto[]) => {
   if (!pointLayer.value) {
     console.warn("PointLayer 尚未初始化");
     return;
   }
 
-  // 构建所有点数据
-  const points = audios.map((audio) => ({
-    geometry: {
-      type: "Point",
-      coordinates: [audio.longitude, audio.latitude],
-    },
-    properties: {
-      id: audio.id,
-      title: audio.title,
-      userName: audio.userName,
-      audioUrl: audio.audioUrl,
-    },
-  }));
+  const zoom = currentZoom.value;
 
-  // 一次性设置所有点
+  // 按访问量排序，高访问量优先显示
+  const sortedAudios = [...audios].sort((a, b) => b.visitCount - a.visitCount);
+
+  const points = sortedAudios.map((audio) => {
+    const size = getMarkerSize(zoom, audio.visitCount);
+    const alpha = 0.5 + (Math.min(audio.visitCount, 50) / 50) * 0.5;
+    return {
+      geometry: {
+        type: "Point",
+        coordinates: [audio.longitude, audio.latitude],
+      },
+      properties: {
+        id: audio.id,
+        title: audio.title,
+        userName: audio.userName,
+        audioUrl: audio.audioUrl,
+      },
+      size,
+      color: `rgba(50, 50, 200, ${alpha})`,
+    };
+  });
+
   pointLayer.value.setData(points);
 };
 
 // 发布按钮点击事件，使用用户当前位置
 const showPublishConfirm = () => {
+  mediumTap();
   // 设置点击位置为用户当前位置
   clickedLongitude.value = userLongitude.value;
   clickedLatitude.value = userLatitude.value;
@@ -244,6 +267,7 @@ const showPublishConfirm = () => {
 
 // 处理确认按钮点击
 const handleConfirm = () => {
+  lightTap();
   // 关闭确认框，打开录音模态框
   showConfirmDialog.value = false;
   showRecordingModal.value = true;
@@ -251,6 +275,7 @@ const handleConfirm = () => {
 
 // 处理取消按钮点击
 const handleCancel = () => {
+  lightTap();
   showConfirmDialog.value = false;
 };
 
@@ -579,7 +604,7 @@ onBeforeUnmount(() => {
   border-color: #40a9ff;
 }
 
-/* 发布按钮样式 */
+/* 发布按钮样式 - 呼吸放大动画 */
 .publish-btn {
   position: absolute;
   bottom: 40px;
@@ -600,10 +625,18 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 0;
   margin: 0;
+  animation: breathe 2.5s ease-in-out infinite;
 }
 
 .publish-btn:hover {
   background-color: #40a9ff;
+  animation: none;
+  transform: translateX(-50%) scale(1.15);
+}
+
+@keyframes breathe {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.3); }
 }
 
 /* 发布按钮加号样式 */

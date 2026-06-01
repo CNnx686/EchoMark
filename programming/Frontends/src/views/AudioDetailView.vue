@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type {
@@ -11,11 +11,13 @@ import type {
   CommentResponseData,
   ReplyResponseData,
 } from "@/types/Audio";
+import { useHaptic } from "@/composables/useHaptic";
 
-const GetAudioUrlPrefix = "http://101.37.31.227:5000";
+const GetAudioUrlPrefix = "http://localhost:5000";
 const Router = useRoute();
 const AudioId = Number(Router.params.audioId);
 const { t } = useI18n();
+const { lightTap, mediumTap } = useHaptic();
 
 const AudioInfo = ref<AudioResponseDto | null>(null);
 const AudioDetail = ref<AudioResponseDetail | null>(null);
@@ -30,6 +32,93 @@ const isPlaying = ref(false);
 const audioElement = ref<HTMLAudioElement | null>(null);
 const audioDuration = ref<number | null>(null);
 
+// 波形可视化相关
+const waveformCanvas = ref<HTMLCanvasElement | null>(null);
+let audioContext: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let sourceNode: MediaElementAudioSourceNode | null = null;
+let animationId: number | null = null;
+const waveformReady = ref(false);
+
+const initWaveform = () => {
+  if (waveformReady.value || !audioElement.value) return;
+
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.85;
+
+    sourceNode = audioContext.createMediaElementSource(audioElement.value);
+    sourceNode.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    waveformReady.value = true;
+    animateWaveform();
+  } catch (e) {
+    console.warn("波形初始化失败:", e);
+  }
+};
+
+const animateWaveform = () => {
+  if (!analyser || !waveformCanvas.value) return;
+
+  const canvas = waveformCanvas.value;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  const draw = () => {
+    animationId = requestAnimationFrame(draw);
+
+    analyser!.getByteFrequencyData(dataArray);
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    const barWidth = (width / bufferLength) * 2.5;
+    const gap = 1;
+    let x = 0;
+
+    // 渐变色
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, "#1890ff");
+    gradient.addColorStop(0.5, "#40a9ff");
+    gradient.addColorStop(1, "#69c0ff");
+
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = (dataArray[i] / 255) * height * 0.9;
+      const y = (height - barHeight) / 2;
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barWidth - gap, Math.max(barHeight, 2), 2);
+      ctx.fill();
+
+      x += barWidth;
+    }
+  };
+
+  draw();
+};
+
+const stopWaveform = () => {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  if (audioContext && audioContext.state !== "closed") {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+  }
+  analyser = null;
+  sourceNode = null;
+  waveformReady.value = false;
+};
+
 // 修改功能相关状态
 const isEditing = ref(false);
 const newAudioTitle = ref("");
@@ -43,6 +132,20 @@ const submittingReply = ref(false);
 const currentReplyTargetUser = ref<string>(""); // 用于 @前缀
 
 // 音频事件
+const onAudioPlay = () => {
+  isPlaying.value = true;
+  if (!waveformReady.value) {
+    initWaveform();
+  }
+  if (audioContext && audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+};
+
+const onAudioPause = () => {
+  isPlaying.value = false;
+};
+
 const onMetadataLoaded = () => {
   if (audioElement.value) {
     audioDuration.value = audioElement.value.duration;
@@ -127,6 +230,11 @@ const fetchFavourite = async (id: number) => {
   }
 };
 
+// 清理波形资源
+onBeforeUnmount(() => {
+  stopWaveform();
+});
+
 // 初始化
 onMounted(async () => {
   if (isNaN(AudioId)) {
@@ -150,6 +258,7 @@ onMounted(async () => {
 
 // 点赞
 const toggleLike = async () => {
+  mediumTap();
   if (!AudioDetail.value) return;
   loading.value = true;
   try {
@@ -174,6 +283,7 @@ const toggleLike = async () => {
 
 // 收藏
 const toggleFavourite = async () => {
+  mediumTap();
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -208,6 +318,7 @@ const toggleFavourite = async () => {
 
 // 发送评论
 const SubmitComment = async () => {
+  lightTap();
   if (!newComment.value.trim() || submitting.value) return;
   submitting.value = true;
   try {
@@ -250,6 +361,7 @@ const SubmitComment = async () => {
 
 // 提交回复
 const SubmitReply = async (rootCommentId: number) => {
+  lightTap();
   if (!replyContent.value.trim() || submittingReply.value) return;
 
   // 统一设置提交状态
@@ -383,6 +495,7 @@ const isCommentOrReplyOwner = (userId: number): boolean => {
 
 // 删除评论
 const deleteComment = async (commentId: number) => {
+  mediumTap();
   if (!confirm(t("audioDetail.deleteCommentConfirm"))) return;
   
   try {
@@ -416,6 +529,7 @@ const deleteComment = async (commentId: number) => {
 
 // 删除回复
 const deleteReply = async (commentId: number, replyId: number) => {
+  mediumTap();
   if (!confirm(t("audioDetail.deleteReplyConfirm"))) return;
   
   try {
@@ -450,6 +564,7 @@ const deleteReply = async (commentId: number, replyId: number) => {
 
 // 实现删除功能
 const handleDelete = async () => {
+  mediumTap();
   if (!confirm(t("audioDetail.deleteConfirm"))) return;
 
   try {
@@ -479,6 +594,7 @@ const handleDelete = async () => {
 
 // 实现修改功能
 const handleEdit = () => {
+  lightTap();
   // 设置编辑状态并初始化表单数据
   isEditing.value = true;
   newAudioTitle.value = AudioInfo.value?.title || "";
@@ -672,9 +788,17 @@ const handleHide = async () => {
             class="w-100 mb-3"
             controls
             @ended="onAudioEnded"
-            @play="isPlaying = true"
-            @pause="isPlaying = false"
+            @play="onAudioPlay"
+            @pause="onAudioPause"
             @loadedmetadata="onMetadataLoaded"
+          />
+
+          <!-- 声音波形可视化 -->
+          <canvas
+            ref="waveformCanvas"
+            class="waveform-canvas"
+            width="600"
+            height="80"
           />
 
           <div class="d-flex gap-3 mt-2 text-muted small">
@@ -1000,5 +1124,15 @@ const handleHide = async () => {
 
 .text-muted {
   transition: color 0.2s ease;
+}
+
+/* 波形可视化 */
+.waveform-canvas {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #0a0a1a, #1a1a2e);
+  margin-bottom: 8px;
+  display: block;
 }
 </style>

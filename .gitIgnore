@@ -1,10 +1,23 @@
 .vscode/
 tmp.*
-application.properties
 *.iml
 .idea/
 target/
 storage/
 DevToken.txt
 local_resource_server/static/users
+local_resource_server/static/audio/
 logs/
+
+# Ignore secrets files (template files are committed)
+**/application-secrets.properties
+**/application-local.properties
+
+# Runtime binaries (Redis is tracked, others are too large)
+runtime/data/
+runtime/erlang/
+runtime/rabbitmq/
+
+# Generated files
+*.rdb
+erl_crash.dump

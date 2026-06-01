@@ -56,6 +56,12 @@ spring:
           predicates:
             - Path=/api/sse/**
 
+        # 7. LLM Service
+        - id: llm-service
+          uri: http://localhost:5007
+          predicates:
+            - Path=/api/llm/**
+
 # --- Swagger UI 聚合配置 ---
 springdoc:
   # 网关本地文档路径（改名，防止冲突）

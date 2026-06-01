@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 public class RemoteStorageServiceImpl implements StorageService {
 
     // 资源服务器地址，可在配置中改成动态获取
-    private static final String SERVER_URL = "http://101.37.31.227:5000";
+    private static final String SERVER_URL = "http://localhost:5000";
 
     @Override
     public String uploadFile(File file, String objectName) throws Exception {

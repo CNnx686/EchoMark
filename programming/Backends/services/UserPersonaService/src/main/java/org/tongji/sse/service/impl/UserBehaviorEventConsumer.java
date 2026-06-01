@@ -1,6 +1,7 @@
 package org.tongji.sse.service.impl;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.tongji.sse.eventUtil.event.UserBehaviorSignalEvent;
@@ -10,6 +11,7 @@ import org.tongji.sse.type.BehaviorType;
 import java.time.Duration;
 
 @Component
+@ConditionalOnProperty(prefix = "rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class UserBehaviorEventConsumer {
 
     private final UserPersonaService personaService;
