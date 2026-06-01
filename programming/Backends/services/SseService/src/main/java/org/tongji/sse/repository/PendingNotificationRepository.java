@@ -20,8 +20,8 @@ public interface PendingNotificationRepository extends JpaRepository<PendingNoti
     // 批量标记已推送
     @Modifying
     @Transactional
-    @Query("UPDATE PendingNotification p SET p.pushed = true, p.pushedAt = CURRENT_TIMESTAMP " +
-            "WHERE p.userId = :userId AND p.notificationId IN :notificationIds")
+    @Query(value = "UPDATE sse_pending_notification SET pushed = true, pushed_at = NOW() " +
+            "WHERE user_id = :userId AND notification_id IN :notificationIds", nativeQuery = true)
     int markPushedBatch(Long userId, List<Long> notificationIds);
 
     /**

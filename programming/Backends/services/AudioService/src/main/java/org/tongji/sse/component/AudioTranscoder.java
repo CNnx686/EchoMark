@@ -4,6 +4,7 @@ import net.bramp.ffmpeg.FFmpeg;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 @Component
+@ConditionalOnProperty(prefix = "ffmpeg", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class AudioTranscoder {
 
     private final FFmpeg ffmpeg;

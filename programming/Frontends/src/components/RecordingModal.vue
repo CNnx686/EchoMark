@@ -188,7 +188,7 @@
         <h4 class="ai-suggestion-title">
           {{ t("recording.aiSuggestionTitle") }}
         </h4>
-        
+
         <!-- 加载状态 -->
         <div
           v-if="aiSuggestionLoading"
@@ -199,7 +199,7 @@
             role="status"
           />
         </div>
-        
+
         <!-- 错误信息 -->
         <div
           v-if="aiSuggestionError"
@@ -207,7 +207,7 @@
         >
           <p>{{ aiSuggestionError }}</p>
         </div>
-        
+
         <!-- AI建议内容 -->
         <div
           v-if="aiSuggestion"
@@ -249,9 +249,11 @@
 import { ref, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import Recorder from "recorder-js";
-import i18n from "../i18n/index"; // 导入i18n实例
+import i18n from "../i18n/index";
+import { useHaptic } from "@/composables/useHaptic";
 
 const { t } = useI18n();
+const { lightTap, mediumTap, heavyTap } = useHaptic();
 
 // 获取认证token的函数
 const getAuthToken = () => {
@@ -324,7 +326,7 @@ const uploadAudio = async (
       const imageFormData = new FormData();
       const imageFile = new File([imageBlob], "image.jpg", { type: "image/jpeg" });
       imageFormData.append("file", imageFile);
-      
+
       const imageResponse = await fetch("/api/audio/photo/upload", {
         method: "POST",
         headers: {
@@ -332,17 +334,17 @@ const uploadAudio = async (
         },
         body: imageFormData,
       });
-      
+
       if (!imageResponse.ok) {
         throw new Error(`图片上传失败: ${imageResponse.status}`);
       }
-      
+
       const imageResult = await imageResponse.json();
-      
+
       if (imageResult.code !== 200) {
         throw new Error(imageResult.msg || "图片上传失败");
       }
-      
+
       // 获取图片URL并添加到发布数据中
       publishData.photoUrl = imageResult.data;
     }
@@ -441,6 +443,7 @@ watch(
 
 // 开始/停止录音
 const ToggleRecording = async () => {
+  heavyTap();
   if (IsRecording.value) {
     StopRecording();
   } else {
@@ -560,6 +563,7 @@ const FormatTime = (seconds: number) => {
 
 // AI按钮处理
 const HandleAIButton = async () => {
+  lightTap();
   // 清除之前的建议和错误
   aiSuggestion.value = "";
   aiSuggestionError.value = null;
@@ -578,7 +582,7 @@ const HandleAIButton = async () => {
     const currentLocale = i18n.global.locale.value;
     // 设置AI输出语言
     const aiOutputLanguage = currentLocale.startsWith('zh') ? '中文' : '英文';
-    
+
     // 构建请求参数
     const requestBody = {
       prompt: `请根据用户提供的信息，给予具体的录音建议。\n\n当前标题："${Title.value || '空'}"\n当前描述："${Description.value || '空'}"\n\n要求：\n1. 分析用户的标题和描述内容，理解用户的场景\n2. 给出具体的录音建议，例如：如果用户描述了在图书馆学习，建议录制翻书声或敲键盘的声音\n3. 建议应该具体、实用，与用户的场景相关\n4. 请用${aiOutputLanguage}回答\n\n如果用户没有提供任何信息，请给出一些通用的录音建议，比如记录日常生活中的声音、自然环境的声音等。注意，输出请尽可能简短，不要包含MarkDown代码块标记。`,
@@ -620,17 +624,17 @@ const HandleAIButton = async () => {
         // 解码数据，让解码器自动处理多字节字符
         const chunk = decoder.decode(value, { stream: !doneReading });
         buffer += chunk;
-        
+
         // 按完整行处理数据
         while (true) {
           const newlineIndex = buffer.indexOf("\n");
           if (newlineIndex === -1) {
             break; // 没有完整的行，等待下一次数据
           }
-          
+
           const line = buffer.substring(0, newlineIndex);
           buffer = buffer.substring(newlineIndex + 1);
-          
+
           if (line.startsWith("data:")) {
             const data = line.substring(5).trim(); // 去掉 "data: " 前缀
             if (data) {
@@ -638,7 +642,7 @@ const HandleAIButton = async () => {
               if (data.trim() === "[DONE]") {
                 continue;
               }
-              
+
               try {
                 // 解析JSON格式的消息
                 const jsonData = JSON.parse(data);
@@ -664,7 +668,7 @@ const HandleAIButton = async () => {
         }
       }
     }
-    
+
     // 处理剩余的缓冲数据
     if (buffer) {
       const dataLines = buffer.split("\n").filter(line => line.startsWith("data:"));
@@ -738,6 +742,7 @@ const removeTag = (index: number) => {
 
 // 取消按钮处理
 const HandleCancel = () => {
+  lightTap();
   // 如果仍在录音，先停止录音
   if (IsRecording.value) {
     StopRecording();
@@ -750,6 +755,7 @@ const HandleCancel = () => {
 
 // 确认按钮处理
 const HandleConfirm = async () => {
+  mediumTap();
   if (!Title.value.trim()) {
     alert(t("recording.titleRequired"));
     return;
@@ -785,7 +791,7 @@ const HandleConfirm = async () => {
     ResetState();
     emit("confirm");
   } catch (error) {
-    alert(t("recording.uploadFailed"));
+    alert(error);
   } finally {
     loading.value = false;
   }

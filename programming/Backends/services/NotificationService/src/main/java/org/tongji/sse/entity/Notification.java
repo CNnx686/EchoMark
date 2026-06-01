@@ -30,12 +30,14 @@ public class Notification {
     @Column(nullable = false)
     private Long actorUserId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationType type;         // LIKE / COMMENT / REPLY
 
     @Column(nullable = false)
     private String content;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TargetType targetType;   // AUDIO / COMMENT
 

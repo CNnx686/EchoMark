@@ -6,7 +6,7 @@ import type { ApiResponse } from '@/types/Audio';
 import type { AudioResponseDto } from '@/types/Audio';
 import type { UserProfileDTO } from '@/types/User';
 
-const GetAssetPrefix = "http://101.37.31.227:5000";
+const GetAssetPrefix = "http://localhost:5000";
 
 const getAuthToken = () => localStorage.getItem('token');
 
